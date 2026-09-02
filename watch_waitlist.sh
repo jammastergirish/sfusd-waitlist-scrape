@@ -8,6 +8,7 @@
 #   ./watch_waitlist.sh --once           # one check, for cron/launchd
 #   ./watch_waitlist.sh --pref 2         # watch the second choice instead
 #   ./watch_waitlist.sh --timeout 120    # the portal is having a slow day
+#   ./watch_waitlist.sh --retries 5      # ride out a longer wobble
 #
 # Needs credentials without a prompt: a .env next to sfusd_waitlist.py, or
 # PARENTVUE_USERNAME / PARENTVUE_PASSWORD exported.
@@ -20,6 +21,9 @@ STATE_FILE="${STATE_FILE:-$SCRIPT_DIR/.waitlist_position}"
 INTERVAL="${INTERVAL:-300}"
 PREF="${PREF:-1}"
 TIMEOUT="${TIMEOUT:-90}"   # generous: the portal is often slow, and we are in no hurry
+RETRIES="${RETRIES:-3}"           # attempts per check, not counting nothing
+RETRY_DELAY="${RETRY_DELAY:-5}"   # seconds before the second attempt
+RETRY_FACTOR="${RETRY_FACTOR:-3}" # …then 15s, 45s, and so on
 ONCE=0
 
 usage() { sed -n '2,${/^#/!q;p;}' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
@@ -34,6 +38,7 @@ while [[ $# -gt 0 ]]; do
     --interval) INTERVAL="${2:?--interval needs seconds}"; shift 2 ;;
     --pref) PREF="${2:?--pref needs a preference order number}"; shift 2 ;;
     --timeout) TIMEOUT="${2:?--timeout needs seconds}"; shift 2 ;;
+    --retries) RETRIES="${2:?--retries needs a count}"; shift 2 ;;
     --state) STATE_FILE="${2:?--state needs a path}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) die "unknown option: $1 (try --help)" ;;
@@ -75,15 +80,40 @@ extract_row() {
     }'
 }
 
+# Retry a slow or unreachable portal with a widening gap. Rejected credentials are
+# not a wobble, so those stop immediately rather than walking into a lockout.
+scrape() {
+  local csv_file="$1" errors="$2" attempt=1 delay="$RETRY_DELAY" message
+  while :; do
+    if uv run "$SCRAPER" -q --format csv --timeout "$TIMEOUT" >"$csv_file" 2>"$errors"; then
+      ((attempt > 1)) && log "recovered on attempt $attempt"
+      return 0
+    fi
+    message=$(tail -n1 "$errors")
+    if [[ "$message" == *"Login failed"* ]]; then
+      log "credentials rejected, not retrying: $message"
+      return 1
+    fi
+    if ((attempt >= RETRIES)); then
+      log "check failed after $attempt attempt(s), leaving the saved position alone: $message"
+      return 1
+    fi
+    log "attempt $attempt failed, retrying in ${delay}s: $message"
+    sleep "$delay"
+    attempt=$((attempt + 1))
+    delay=$((delay * RETRY_FACTOR))
+  done
+}
+
 check() {
-  local errors csv row school position previous prev_school prev_position move
-  errors=$(mktemp)
-  if ! csv=$(uv run "$SCRAPER" -q --format csv --timeout "$TIMEOUT" 2>"$errors"); then
-    log "check failed, leaving the saved position alone: $(tail -n1 "$errors")"
-    rm -f "$errors"
+  local out errors csv row school position previous prev_school prev_position move
+  out=$(mktemp) errors=$(mktemp)
+  if ! scrape "$out" "$errors"; then
+    rm -f "$out" "$errors"
     return 0
   fi
-  rm -f "$errors"
+  csv=$(cat "$out")
+  rm -f "$out" "$errors"
 
   row=$(printf '%s\n' "$csv" | extract_row "$PREF")
   if [[ -n "$row" ]]; then

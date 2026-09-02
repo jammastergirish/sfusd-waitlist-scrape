@@ -71,8 +71,19 @@ only when your top choice actually moves — not on every check.
 ```
 
 The portal's response time varies a lot — a scrape that takes 7 seconds one hour
-can take 20 the next — so the watcher gives each check 90 seconds by default,
-rather than the 45 the scraper uses interactively.
+can take 20 the next, and sometimes a request just hangs — so the watcher gives
+each check 90 seconds by default, rather than the 45 the scraper uses
+interactively, and retries a failed check three times with a widening gap
+(5s, then 15s, then 45s). `--retries` and `RETRY_DELAY` / `RETRY_FACTOR` tune it.
+
+```
+[2026-09-02 11:04:08] attempt 1 failed, retrying in 5s: error: timed out — Page.goto: Timeout 90000ms exceeded.
+[2026-09-02 11:04:20] recovered on attempt 2
+[2026-09-02 11:04:20] NOTIFY SFUSD waitlist — McKinley ES: 5 → 2 — up 3
+```
+
+Rejected credentials are not a wobble, so those fail immediately without
+retrying — repeatedly posting a bad password is how you get an account locked.
 
 The last seen position is kept in `.waitlist_position` (git-ignored) as
 `School|Position`, so restarting the watcher will not re-announce a move you have
