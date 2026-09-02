@@ -79,7 +79,7 @@ interactively, and retries a failed check three times with a widening gap
 ```
 [2026-09-02 11:04:08] attempt 1 failed, retrying in 5s: error: timed out — Page.goto: Timeout 90000ms exceeded.
 [2026-09-02 11:04:20] recovered on attempt 2
-[2026-09-02 11:04:20] NOTIFY SFUSD waitlist — McKinley ES: 5 → 2 — up 3
+[2026-09-02 11:04:20] NOTIFY SFUSD waitlist — Example ES Position: 2
 ```
 
 Rejected credentials are not a wobble, so those fail immediately without
@@ -92,7 +92,7 @@ already been told about. Delete that file to re-baseline.
 ```
 [2026-09-02 10:29:11] baseline: choice 1 is Example ES at position 3
 [2026-09-02 10:34:11] no change: choice 1 is Example ES at position 3
-[2026-09-02 10:39:11] NOTIFY SFUSD waitlist — Example ES: 3 → 2 — up 1
+[2026-09-02 10:39:11] NOTIFY SFUSD waitlist — Example ES Position: 2
 ```
 
 Notifications go through `terminal-notifier` if you have it, otherwise

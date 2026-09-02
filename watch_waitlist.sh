@@ -106,7 +106,7 @@ scrape() {
 }
 
 check() {
-  local out errors csv row school position previous prev_school prev_position move
+  local out errors csv row school position previous prev_school prev_position
   out=$(mktemp) errors=$(mktemp)
   if ! scrape "$out" "$errors"; then
     rm -f "$out" "$errors"
@@ -133,18 +133,8 @@ check() {
   elif [[ "$position" == "$prev_position" && "$school" == "$prev_school" ]]; then
     log "no change: choice $PREF is $school at position $position"
     return 0
-  elif [[ "$school" != "$prev_school" ]]; then
-    notify "SFUSD waitlist" "Choice $PREF changed: $prev_school ($prev_position) → $school ($position)"
   else
-    move=""
-    if [[ "$position" =~ ^[0-9]+$ && "$prev_position" =~ ^[0-9]+$ ]]; then
-      if ((position < prev_position)); then
-        move=" — up $((prev_position - position))"
-      else
-        move=" — down $((position - prev_position))"
-      fi
-    fi
-    notify "SFUSD waitlist" "$school: $prev_position → $position$move"
+    notify "SFUSD waitlist" "$school Position: $position"
   fi
 
   printf '%s|%s\n' "$school" "$position" > "$STATE_FILE"
