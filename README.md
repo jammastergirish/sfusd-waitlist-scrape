@@ -57,6 +57,39 @@ Progress goes to stderr and the table to stdout, so piping stays clean:
 uv run sfusd_waitlist.py -q --format csv > waitlist.csv
 ```
 
+## Watching for changes
+
+`watch_waitlist.sh` polls every five minutes and sends a desktop notification
+only when your top choice actually moves — not on every check.
+
+```bash
+./watch_waitlist.sh              # every 5 minutes until you ctrl-c
+./watch_waitlist.sh --once       # a single check, for cron or launchd
+./watch_waitlist.sh --pref 2     # watch the second choice instead
+./watch_waitlist.sh --interval 900
+```
+
+The last seen position is kept in `.waitlist_position` (git-ignored) as
+`School|Position`, so restarting the watcher will not re-announce a move you have
+already been told about. Delete that file to re-baseline.
+
+```
+[2026-09-02 10:29:11] baseline: choice 1 is Example ES at position 3
+[2026-09-02 10:34:11] no change: choice 1 is Example ES at position 3
+[2026-09-02 10:39:11] NOTIFY SFUSD waitlist — Example ES: 3 → 2 — up 1
+```
+
+Notifications go through `terminal-notifier` if you have it, otherwise
+`osascript` on macOS or `notify-send` on Linux. It also notifies if the top row
+changes school or drops off the list entirely — an offer, or a withdrawn choice.
+
+Because it runs unattended it cannot answer a password prompt: it needs `.env` or
+exported `PARENTVUE_*` variables, and says so rather than hanging. A failed check
+(network, portal down) is logged and skipped without touching the saved position.
+
+For something that survives a reboot, wrap `--once` in a launchd job or a cron
+entry instead of leaving the loop running.
+
 ## How it works
 
 1. Posts the login form at `PXP2_Login_Parent.aspx` (Synergy's standard field ids,
