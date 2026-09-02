@@ -96,7 +96,10 @@ already been told about. Delete that file to re-baseline.
 ```
 
 Notifications go through `terminal-notifier` if you have it, otherwise
-`osascript` on macOS or `notify-send` on Linux. It also notifies if the top row
+`osascript` on macOS or `notify-send` on Linux. Set `NTFY_TOPIC` in `.env` to
+also push to your phone via [ntfy.sh](https://ntfy.sh) — install the app and
+subscribe to the same topic. The topic name is the only thing keeping it private,
+so pick something nobody would guess. It also notifies if the top row
 changes school or drops off the list entirely — an offer, or a withdrawn choice.
 
 Because it runs unattended it cannot answer a password prompt: it needs `.env` or

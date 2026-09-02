@@ -16,6 +16,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$SCRIPT_DIR/.env" ]]; then set -a; . "$SCRIPT_DIR/.env"; set +a; fi
+
 SCRAPER="${SCRAPER:-$SCRIPT_DIR/sfusd_waitlist.py}"   # overridable so the loop is testable
 STATE_FILE="${STATE_FILE:-$SCRIPT_DIR/.waitlist_position}"
 INTERVAL="${INTERVAL:-300}"
@@ -55,6 +57,7 @@ fi
 notify() {
   local title="$1" message="$2" escaped
   log "NOTIFY $title — $message"
+  [[ -n "${NTFY_TOPIC:-}" ]] && curl -fsS -H "Title: $title" -d "$message" "https://ntfy.sh/$NTFY_TOPIC" -o /dev/null || true
   if command -v terminal-notifier >/dev/null 2>&1; then
     terminal-notifier -title "$title" -message "$message" -sound Glass || true
   elif command -v osascript >/dev/null 2>&1; then
