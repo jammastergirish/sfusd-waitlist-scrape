@@ -67,7 +67,12 @@ only when your top choice actually moves — not on every check.
 ./watch_waitlist.sh --once       # a single check, for cron or launchd
 ./watch_waitlist.sh --pref 2     # watch the second choice instead
 ./watch_waitlist.sh --interval 900
+./watch_waitlist.sh --timeout 120  # the portal is having a slow day
 ```
+
+The portal's response time varies a lot — a scrape that takes 7 seconds one hour
+can take 20 the next — so the watcher gives each check 90 seconds by default,
+rather than the 45 the scraper uses interactively.
 
 The last seen position is kept in `.waitlist_position` (git-ignored) as
 `School|Position`, so restarting the watcher will not re-announce a move you have

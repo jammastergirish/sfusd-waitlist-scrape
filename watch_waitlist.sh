@@ -7,6 +7,7 @@
 #   ./watch_waitlist.sh                  # check every 5 minutes
 #   ./watch_waitlist.sh --once           # one check, for cron/launchd
 #   ./watch_waitlist.sh --pref 2         # watch the second choice instead
+#   ./watch_waitlist.sh --timeout 120    # the portal is having a slow day
 #
 # Needs credentials without a prompt: a .env next to sfusd_waitlist.py, or
 # PARENTVUE_USERNAME / PARENTVUE_PASSWORD exported.
@@ -18,9 +19,10 @@ SCRAPER="${SCRAPER:-$SCRIPT_DIR/sfusd_waitlist.py}"   # overridable so the loop 
 STATE_FILE="${STATE_FILE:-$SCRIPT_DIR/.waitlist_position}"
 INTERVAL="${INTERVAL:-300}"
 PREF="${PREF:-1}"
+TIMEOUT="${TIMEOUT:-90}"   # generous: the portal is often slow, and we are in no hurry
 ONCE=0
 
-usage() { sed -n '3,13p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,${/^#/!q;p;}' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 
 die() { printf '%s\n' "$*" >&2; exit 1; }
 
@@ -31,6 +33,7 @@ while [[ $# -gt 0 ]]; do
     --once) ONCE=1; shift ;;
     --interval) INTERVAL="${2:?--interval needs seconds}"; shift 2 ;;
     --pref) PREF="${2:?--pref needs a preference order number}"; shift 2 ;;
+    --timeout) TIMEOUT="${2:?--timeout needs seconds}"; shift 2 ;;
     --state) STATE_FILE="${2:?--state needs a path}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) die "unknown option: $1 (try --help)" ;;
@@ -75,7 +78,7 @@ extract_row() {
 check() {
   local errors csv row school position previous prev_school prev_position move
   errors=$(mktemp)
-  if ! csv=$(uv run "$SCRAPER" -q --format csv 2>"$errors"); then
+  if ! csv=$(uv run "$SCRAPER" -q --format csv --timeout "$TIMEOUT" 2>"$errors"); then
     log "check failed, leaving the saved position alone: $(tail -n1 "$errors")"
     rm -f "$errors"
     return 0
