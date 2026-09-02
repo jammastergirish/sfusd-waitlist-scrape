@@ -106,6 +106,74 @@ exported `PARENTVUE_*` variables, and says so rather than hanging. A failed chec
 For something that survives a reboot, wrap `--once` in a launchd job or a cron
 entry instead of leaving the loop running.
 
+## Setting it up on another Mac
+
+Start to finish, assuming nothing is installed yet. Everything happens in
+Terminal — open it with ⌘-Space, type `Terminal`, press return.
+
+**1. Install uv**, which runs the script and fetches what it needs:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Close Terminal and open it again afterwards. (If you already have Homebrew,
+`brew install uv` does the same thing.)
+
+**2. Download this repo** into your home folder:
+
+```bash
+git clone https://github.com/jammastergirish/sfusd-waitlist-scrape.git ~/sfusd-waitlist-scrape
+cd ~/sfusd-waitlist-scrape
+```
+
+macOS may offer to install developer tools the first time you run `git` — accept,
+then run the command again. If you would rather not, the green **Code** button on
+the GitHub page has a **Download ZIP** option; unzip it and `cd` into the folder.
+
+**3. Save your ParentVUE login** so it does not ask every time. Replace the two
+values with your own, keeping the single quotes:
+
+```bash
+printf 'PARENTVUE_USERNAME=%s\nPARENTVUE_PASSWORD=%s\n' 'you@example.com' 'your-password' > .env && chmod 600 .env
+```
+
+The single quotes matter: a password containing `!` will otherwise confuse the
+shell. This file stays on your Mac and is never committed.
+
+**4. Check it works.** The first run takes a minute or two — it downloads a
+private copy of Chrome to read the page with:
+
+```bash
+uv run sfusd_waitlist.py
+```
+
+You should see your waitlist table printed.
+
+**5. Let it send notifications.** Run this once, which makes macOS aware of the
+notifier:
+
+```bash
+osascript -e 'display notification "Setting up" with title "SFUSD waitlist"'
+```
+
+Then open **System Settings → Notifications**, find **Script Editor** in the list,
+and turn on *Allow notifications*. This step is easy to miss: without it macOS
+silently throws the notifications away and you will never see one.
+
+**6. Start watching:**
+
+```bash
+./watch_waitlist.sh
+```
+
+Leave that Terminal window open. It checks every five minutes and stays quiet
+unless your first-choice school moves, in which case a notification appears
+saying, for example, `McKinley ES Position: 2`. Press **control-C** to stop it.
+
+It only checks while that window is open and the Mac is awake — closing the lid
+pauses it, and it picks up again when you reopen it.
+
 ## How it works
 
 1. Posts the login form at `PXP2_Login_Parent.aspx` (Synergy's standard field ids,
